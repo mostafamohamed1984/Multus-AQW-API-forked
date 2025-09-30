@@ -1,32 +1,42 @@
 import { AQW } from "@/lib/helpers";
+import { badge } from "@/lib/types";
 import { NextResponse } from "next/server";
 
+export const runtime = "edge";
 const aqw = new AQW();
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const name = searchParams.get("name");
-  if (!name) {
+  if (!name)
     return NextResponse.json({ error: "No name provided" }, { status: 400 });
+  
+  const id = await aqw.getIDbyName(name);
+  if (!id) {
+    return NextResponse.json({ error: "Character not found" }, { status: 404 });
   }
-
+  
   try {
-    const data = await aqw.getEquippedByName(name);
-    console.log("DEBUG AQW response:", data); // log to Vercel
-    if (!data || data === 404) {
-      return NextResponse.json({ error: "Character not found" }, { status: 404 });
-    }
-
-    const guild = data.Guild?.toLowerCase() || "";
-    const isGoat = ["goat"].includes(guild);
-
-    return NextResponse.json({
-      character: name,
-      guild: data.Guild,
-      isGoat,
+    const res = await fetch(
+      `https://account.aq.com/Charpage/Badges?ccid=${id}`
+    );
+    const data = (await res.json()) as badge[];
+    const badges = data.map((badge) => {
+      const { badgeID, sCategory, sTitle, sDesc, sFileName, sSubCategory } =
+        badge;
+      return {
+        id: badgeID,
+        category: sCategory,
+        title: sTitle,
+        description: sDesc,
+        imageURL: `https://game.aq.com/game/gamefiles/badges/${sFileName}`,
+        subCategory: sSubCategory,
+      };
     });
-  } catch (err) {
-    console.error("Error in verify:", err);
-    return NextResponse.json({ error: "Server error", details: String(err) }, { status: 500 });
+
+    return NextResponse.json({ total: badges.length, badges });
+  } catch (error) {
+    console.error("Error fetching achievements:", error);
+    return new NextResponse("Error", { status: 500 });
   }
 }
