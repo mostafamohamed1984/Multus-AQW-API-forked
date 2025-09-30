@@ -1,7 +1,8 @@
 import { AQW } from "@/lib/helpers";
 import { NextResponse } from "next/server";
 
-export const runtime = "edge";
+// Change from "edge" to "nodejs" - this gives you more flexibility
+export const runtime = "nodejs"; 
 const aqw = new AQW();
 
 export async function GET(req: Request) {
@@ -26,6 +27,10 @@ export async function GET(req: Request) {
       isGoat,
     });
   } catch (err) {
-    return NextResponse.json({ error: "Server error", details: String(err) }, { status: 500 });
+    console.error("Verify endpoint error:", err);
+    return NextResponse.json({ 
+      error: "Failed to fetch character data", 
+      details: String(err) 
+    }, { status: 500 });
   }
 }
