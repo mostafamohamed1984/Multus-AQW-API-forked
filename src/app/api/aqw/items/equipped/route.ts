@@ -1,7 +1,6 @@
 import { AQW } from "@/lib/helpers";
 import { NextResponse } from "next/server";
 
-export const runtime = "edge";
 
 const aqw = new AQW();
 

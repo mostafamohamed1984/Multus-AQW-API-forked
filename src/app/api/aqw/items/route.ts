@@ -2,7 +2,6 @@ import { AQW } from "@/lib/helpers";
 import { inv } from "@/lib/types";
 import { NextResponse } from "next/server";
 
-export const runtime = "edge";
 const aqw = new AQW();
 
 export async function GET(req: Request) {
