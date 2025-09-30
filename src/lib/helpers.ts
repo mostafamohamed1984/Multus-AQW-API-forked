@@ -23,21 +23,41 @@ export class AQW {
   };
 
   getEquippedByName = async (name: string) => {
-    const url = new URL(this.baseURL);
+    // Try both 'id' and 'player' params for robustness
+    let url = new URL(this.baseURL);
     url.searchParams.append("id", name);
-    const response = await fetch(url, this.init);
-    const htmlString = await response.text();
-    const $ = load(htmlString);
-    const list = $("div.card-body label").parent().text().trim().split("\n");
-    if (list.length == 1) return 404;
-    // console.log(list.length)
-    const values: Record<string, string> = {};
-    list.forEach((l) => {
-      const label = l.split(":")[0].trim();
-      const value = l.split(":")[1]?.trim();
-      if (label) values[label] = value;
-    });
-    console.log({ values });
-    return values;
+    let response, htmlString;
+    try {
+      response = await fetch(url, this.init);
+      htmlString = await response.text();
+      // If the HTML is suspiciously short, try 'player' param
+      if (htmlString.length < 500) {
+        url = new URL(this.baseURL);
+        url.searchParams.append("player", name);
+        response = await fetch(url, this.init);
+        htmlString = await response.text();
+      }
+    } catch (err) {
+      return { error: 'Fetch failed', details: String(err) };
+    }
+
+    try {
+      const $ = load(htmlString);
+      const list = $("div.card-body label").parent().text().trim().split("\n");
+      if (list.length == 1) {
+        return { error: 'No equipped data found', html: htmlString };
+      }
+      const values: Record<string, string> = {};
+      list.forEach((l) => {
+        const label = l.split(":")[0].trim();
+        const value = l.split(":")[1]?.trim();
+        if (label) values[label] = value;
+      });
+      // Log for debugging
+      console.log({ values });
+      return values;
+    } catch (err) {
+      return { error: 'Parse failed', details: String(err), html: htmlString };
+    }
   };
 }
